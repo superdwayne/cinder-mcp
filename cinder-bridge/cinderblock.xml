@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cinder>
+    <block name="CinderBridge"
+           author="Cinder MCP"
+           summary="OSC bridge between Cinder apps and the MCP server"
+           url="https://github.com/cinder-mcp/cinder-bridge"
+           license="MIT"
+           version="1.0.0">
+
+        <header>CinderBridge.h</header>
+
+        <platform os="macosx">
+            <dependency name="OSC" />
+        </platform>
+
+        <platform os="msw">
+            <dependency name="OSC" />
+        </platform>
+
+        <platform os="linux">
+            <dependency name="OSC" />
+        </platform>
+    </block>
+</cinder>

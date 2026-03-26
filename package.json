@@ -1,0 +1,25 @@
+{
+  "name": "cinder-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP server for Cinder creative coding framework",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "index-knowledge": "tsx scripts/build-knowledge.ts",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "better-sqlite3": "^11.8.1",
+    "osc": "^2.4.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.13.10",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.9"
+  }
+}
