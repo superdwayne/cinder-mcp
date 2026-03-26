@@ -97,17 +97,15 @@ describe("Documentation Tools", () => {
   });
 
   describe("handleToolCall", () => {
-    it("should throw for unimplemented tools", async () => {
-      // The docs tools are currently stubs, so they should throw
-      await expect(
-        handleToolCall("search_docs", { query: "texture" }),
-      ).rejects.toThrow();
+    it("should return a string for search_docs", async () => {
+      const result = await handleToolCall("search_docs", { query: "texture" });
+      expect(typeof result).toBe("string");
     });
 
-    it("should throw for unknown tool names", async () => {
-      await expect(
-        handleToolCall("nonexistent_tool", {}),
-      ).rejects.toThrow();
+    it("should return a string for unknown tool names", async () => {
+      const result = await handleToolCall("nonexistent_tool", {});
+      expect(typeof result).toBe("string");
+      expect(result).toContain("Unknown docs tool");
     });
   });
 });

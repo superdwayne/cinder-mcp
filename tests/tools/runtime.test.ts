@@ -17,8 +17,9 @@ describe("Runtime Tools", () => {
     it("should define connect tool", () => {
       const tool = tools.find((t) => t.name === "connect");
       expect(tool).toBeDefined();
-      const required = tool!.inputSchema.required as string[];
-      expect(required).toContain("port");
+      const props = tool!.inputSchema.properties as Record<string, any>;
+      expect(props.port).toBeDefined();
+      expect(props.name).toBeDefined();
     });
 
     it("should define disconnect tool", () => {
@@ -58,7 +59,7 @@ describe("Runtime Tools", () => {
       const tool = tools.find((t) => t.name === "hot_reload_shader");
       expect(tool).toBeDefined();
       const required = tool!.inputSchema.required as string[];
-      expect(required).toContain("fragment_path");
+      expect(required).toContain("shader_name");
     });
 
     it("should define set_camera tool", () => {
@@ -74,8 +75,8 @@ describe("Runtime Tools", () => {
       expect(tool).toBeDefined();
       const required = tool!.inputSchema.required as string[];
       expect(required).toContain("name");
-      expect(required).toContain("target");
-      expect(required).toContain("duration");
+      expect(required).toContain("target_value");
+      expect(required).toContain("duration_ms");
     });
   });
 
@@ -116,30 +117,29 @@ describe("Runtime Tools", () => {
   });
 
   describe("handleToolCall", () => {
-    it("should throw for list_apps (not yet implemented)", async () => {
-      await expect(handleToolCall("list_apps", {})).rejects.toThrow(
-        "not yet implemented",
-      );
+    it("should return empty apps list for list_apps", async () => {
+      const result = await handleToolCall("list_apps", {});
+      expect(result).toEqual({ apps: [] });
     });
 
-    it("should throw for set_uniform (not yet implemented)", async () => {
+    it("should throw zod validation error for set_uniform with missing type", async () => {
       await expect(
         handleToolCall("set_uniform", { name: "uTime", value: 1.0 }),
-      ).rejects.toThrow("not yet implemented");
+      ).rejects.toThrow();
     });
 
-    it("should throw for screenshot (not yet implemented)", async () => {
+    it("should throw 'Not connected' for screenshot", async () => {
       await expect(handleToolCall("screenshot", {})).rejects.toThrow(
-        "not yet implemented",
+        "Not connected",
       );
     });
 
-    it("should throw for hot_reload_shader (not yet implemented)", async () => {
+    it("should throw zod validation error for hot_reload_shader with wrong params", async () => {
       await expect(
         handleToolCall("hot_reload_shader", {
           fragment_path: "/tmp/shader.frag",
         }),
-      ).rejects.toThrow("not yet implemented");
+      ).rejects.toThrow();
     });
   });
 });

@@ -56,19 +56,22 @@ describe("Codegen Tools", () => {
   });
 
   describe("generate_shader", () => {
-    it("should require effect parameter", () => {
+    it("should require type parameter", () => {
       const tool = tools.find((t) => t.name === "generate_shader");
       const required = tool!.inputSchema.required as string[];
-      expect(required).toContain("effect");
+      expect(required).toContain("type");
     });
 
-    it("should accept shader_type enum", () => {
+    it("should accept type enum", () => {
       const tool = tools.find((t) => t.name === "generate_shader");
       const props = tool!.inputSchema.properties as Record<string, any>;
-      expect(props.shader_type.enum).toEqual([
-        "vertex",
-        "fragment",
-        "both",
+      expect(props.type.enum).toEqual([
+        "basic",
+        "phong",
+        "wireframe",
+        "particle",
+        "postprocess",
+        "custom",
       ]);
     });
   });
@@ -103,11 +106,11 @@ describe("Codegen Tools", () => {
       expect(required).toContain("nodes");
     });
 
-    it("should accept array of node strings", () => {
+    it("should accept array of node objects", () => {
       const tool = tools.find((t) => t.name === "generate_audio_graph");
       const props = tool!.inputSchema.properties as Record<string, any>;
       expect(props.nodes.type).toBe("array");
-      expect(props.nodes.items.type).toBe("string");
+      expect(props.nodes.items.type).toBe("object");
     });
   });
 
@@ -127,36 +130,55 @@ describe("Codegen Tools", () => {
   });
 
   describe("handleToolCall", () => {
-    it("should throw for unimplemented tools (stubs)", async () => {
-      await expect(
-        handleToolCall("generate_shader", { effect: "blur" }),
-      ).rejects.toThrow("not yet implemented");
+    it("should generate a basic shader", async () => {
+      const result = await handleToolCall("generate_shader", {
+        type: "basic",
+        name: "myShader",
+      });
+      expect(result).toContain("myShader");
+      expect(result).toContain("#version 150");
     });
 
-    it("should throw for generate_batch stub", async () => {
-      await expect(
-        handleToolCall("generate_batch", { geometry: "sphere" }),
-      ).rejects.toThrow("not yet implemented");
+    it("should generate a batch", async () => {
+      const result = await handleToolCall("generate_batch", {
+        geometry: "sphere",
+        shader_type: "basic",
+        name: "myBatch",
+      });
+      expect(result).toContain("myBatch");
     });
 
-    it("should throw for generate_fbo_pipeline stub", async () => {
-      await expect(
-        handleToolCall("generate_fbo_pipeline", { passes: 3 }),
-      ).rejects.toThrow("not yet implemented");
+    it("should generate an fbo pipeline", async () => {
+      const result = await handleToolCall("generate_fbo_pipeline", {
+        passes: 2,
+        width: 1024,
+        height: 768,
+        format: "RGBA8",
+        ping_pong: false,
+      });
+      expect(result).toContain("Fbo");
     });
 
-    it("should throw for generate_audio_graph stub", async () => {
-      await expect(
-        handleToolCall("generate_audio_graph", {
-          nodes: ["input", "gain", "output"],
-        }),
-      ).rejects.toThrow("not yet implemented");
+    it("should generate an audio graph", async () => {
+      const result = await handleToolCall("generate_audio_graph", {
+        nodes: [
+          { type: "GenSineNode", name: "sine" },
+          { type: "GainNode", name: "gain" },
+        ],
+        connections: [{ from: "sine", to: "gain" }],
+      });
+      expect(result).toContain("audio");
     });
 
-    it("should throw for generate_particle_system stub", async () => {
-      await expect(
-        handleToolCall("generate_particle_system", { max_particles: 1000 }),
-      ).rejects.toThrow("not yet implemented");
+    it("should generate a particle system", async () => {
+      const result = await handleToolCall("generate_particle_system", {
+        max_particles: 1000,
+        emitter_type: "point",
+        forces: ["gravity"],
+        render_mode: "points",
+        instanced: false,
+      });
+      expect(result).toContain("particle");
     });
   });
 });

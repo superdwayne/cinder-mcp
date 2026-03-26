@@ -50,48 +50,49 @@ describe("Scaffold Tools", () => {
       expect(required).toContain("project_path");
     });
 
-    it("should accept generator and build_type parameters", () => {
+    it("should accept add_sources and add_libraries parameters", () => {
       const tool = tools.find((t) => t.name === "configure_build");
       const props = tool!.inputSchema.properties as Record<string, any>;
-      expect(props.generator).toBeDefined();
-      expect(props.build_type).toBeDefined();
+      expect(props.add_sources).toBeDefined();
+      expect(props.add_libraries).toBeDefined();
     });
   });
 
   describe("create_from_sample", () => {
-    it("should require sample_name and dest_path parameters", () => {
+    it("should require sample_name, name, and path parameters", () => {
       const tool = tools.find((t) => t.name === "create_from_sample");
       const required = tool!.inputSchema.required as string[];
       expect(required).toContain("sample_name");
-      expect(required).toContain("dest_path");
+      expect(required).toContain("name");
+      expect(required).toContain("path");
     });
   });
 
   describe("handleToolCall", () => {
-    it("should throw for create_project (not yet implemented)", async () => {
-      await expect(
-        handleToolCall("create_project", {
-          name: "TestApp",
-          path: "/tmp/test",
-        }),
-      ).rejects.toThrow("not yet implemented");
+    it("should return a result string for create_project", async () => {
+      const result = await handleToolCall("create_project", {
+        name: "TestApp",
+        path: "/tmp/cinder-test-" + Date.now(),
+      });
+      expect(typeof result).toBe("string");
+      expect(result).toContain("TestApp");
     });
 
-    it("should throw for configure_build (not yet implemented)", async () => {
-      await expect(
-        handleToolCall("configure_build", {
-          project_path: "/tmp/test",
-        }),
-      ).rejects.toThrow("not yet implemented");
+    it("should return a result string for configure_build", async () => {
+      const result = await handleToolCall("configure_build", {
+        project_path: "/tmp/nonexistent-path",
+      });
+      expect(typeof result).toBe("string");
+      expect(result).toContain("CMakeLists.txt not found");
     });
 
-    it("should throw for create_from_sample (not yet implemented)", async () => {
+    it("should throw zod validation for create_from_sample with missing params", async () => {
       await expect(
         handleToolCall("create_from_sample", {
           sample_name: "BasicApp",
           dest_path: "/tmp/test",
         }),
-      ).rejects.toThrow("not yet implemented");
+      ).rejects.toThrow();
     });
   });
 });
