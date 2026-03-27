@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>BlockBounce</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="loading">
+    <div id="loading-inner">
+      <div class="spinner"></div>
+      <p>Loading OpenCV...</p>
+    </div>
+  </div>
+
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <div id="controls">
+    <div id="controls-header">
+      <span class="controls-title">BlockBounce</span>
+      <button id="toggle-controls" title="Toggle controls">&#9776;</button>
+    </div>
+    <div id="controls-body">
+      <label for="canny-slider">Edge Sensitivity: <span id="canny-val">50</span></label>
+      <input type="range" id="canny-slider" min="10" max="200" value="50">
+
+      <label for="area-slider">Min Area: <span id="area-val">2000</span></label>
+      <input type="range" id="area-slider" min="200" max="10000" value="2000" step="100">
+
+      <label for="ball-size-slider">Ball Size: <span id="ball-size-val">12</span></label>
+      <input type="range" id="ball-size-slider" min="5" max="40" value="12">
+
+      <label for="bounce-slider">Bounce: <span id="bounce-val">0.92</span></label>
+      <input type="range" id="bounce-slider" min="0" max="100" value="92">
+
+      <button id="flip-btn">Flip Camera</button>
+      <button id="respawn-btn">Respawn Ball</button>
+    </div>
+  </div>
+
+  <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/poly-decomp/0.3.0/decomp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
