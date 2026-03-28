@@ -1,0 +1,3 @@
+/Users/dwayne/Desktop/Cinder/projects/Ghost/build/CMakeFiles/Ghost.dir
+/Users/dwayne/Desktop/Cinder/projects/Ghost/build/CMakeFiles/edit_cache.dir
+/Users/dwayne/Desktop/Cinder/projects/Ghost/build/CMakeFiles/rebuild_cache.dir

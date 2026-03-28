@@ -1,0 +1,3 @@
+/Users/dwayne/Desktop/Cinder/projects/Resonance/build/CMakeFiles/Resonance.dir
+/Users/dwayne/Desktop/Cinder/projects/Resonance/build/CMakeFiles/edit_cache.dir
+/Users/dwayne/Desktop/Cinder/projects/Resonance/build/CMakeFiles/rebuild_cache.dir
