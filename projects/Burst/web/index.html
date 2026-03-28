@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BURST</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+
+    <div id="title">BURST</div>
+
+    <div id="controls">
+        <div id="controls-header" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+            <span style="font-weight:600;letter-spacing:0.05em;">Controls</span>
+            <span id="toggle-arrow" style="font-size:18px;transition:transform 0.3s;">&#9660;</span>
+        </div>
+        <div id="controls-body">
+            <label for="sensitivity">Sensitivity</label>
+            <input type="range" id="sensitivity" min="5" max="80" value="25">
+            <label for="size">Particle Size</label>
+            <input type="range" id="size" min="4" max="40" value="15">
+            <label for="gravity">Gravity</label>
+            <input type="range" id="gravity" min="0" max="30" value="5">
+            <button id="flipBtn">Flip Camera</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
