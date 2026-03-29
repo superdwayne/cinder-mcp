@@ -238,9 +238,12 @@ function spawnBall(x, y) {
 
 function spawnBurst(count) {
   count = count || 5;
+  const margin = 80;
+  const spacing = (canvas.width - margin * 2) / (count - 1);
   for (let i = 0; i < count; i++) {
-    const rx = 100 + Math.random() * (canvas.width - 200);
-    spawnBall(rx, -40);
+    const x = margin + i * spacing + (Math.random() - 0.5) * 30;
+    const y = 40 + Math.random() * 60;
+    spawnBall(x, y);
   }
 }
 
