@@ -14,7 +14,7 @@ let wallBodies = [];
 let cannyLow = 80;
 let cannyHigh = 180;
 let minArea = 3000;
-let ballRadius = 15;
+let ballRadius = 30;
 let ballBounce = 0.92;
 let maxBalls = 15;
 
@@ -584,11 +584,18 @@ function setupControls() {
   });
 
   // Prevent clicks on controls panel from spawning balls
-  document.getElementById('controls').addEventListener('click', (e) => {
-    e.stopPropagation();
+  // Use capture phase so buttons still receive their own events
+  const controlsEl = document.getElementById('controls');
+  controlsEl.addEventListener('click', (e) => {
+    // Only stop propagation if the target is not a button
+    if (e.target.tagName !== 'BUTTON') {
+      e.stopPropagation();
+    }
   });
-  document.getElementById('controls').addEventListener('touchstart', (e) => {
-    e.stopPropagation();
+  controlsEl.addEventListener('touchstart', (e) => {
+    if (e.target.tagName !== 'BUTTON') {
+      e.stopPropagation();
+    }
   });
 
   // Canny slider
@@ -638,18 +645,25 @@ function setupControls() {
   }
 
   // Flip camera button
-  document.getElementById('flip-btn').addEventListener('click', flipCamera);
+  const flipBtn = document.getElementById('flip-btn');
+  flipBtn.addEventListener('click', flipCamera);
+  flipBtn.addEventListener('touchend', (e) => { e.preventDefault(); flipCamera(); });
 
   // Burst button (spawn 5 at once)
-  document.getElementById('burst-btn').addEventListener('click', () => spawnBurst(5));
+  const burstBtn = document.getElementById('burst-btn');
+  burstBtn.addEventListener('click', (e) => { e.stopPropagation(); spawnBurst(5); });
+  burstBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); spawnBurst(5); });
 
   // Clear button
-  document.getElementById('clear-btn').addEventListener('click', () => {
+  const clearBtn = document.getElementById('clear-btn');
+  const clearAll = () => {
     for (const ball of balls) {
       Matter.Composite.remove(world, ball);
     }
     balls = [];
-  });
+  };
+  clearBtn.addEventListener('click', (e) => { e.stopPropagation(); clearAll(); });
+  clearBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); clearAll(); });
 }
 
 // ─── Safety: wait for OpenCV if already loaded ──────────────────────────────
