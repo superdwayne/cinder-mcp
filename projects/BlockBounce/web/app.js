@@ -244,6 +244,14 @@ function spawnBurst(count) {
   }
 }
 
+// Expose button actions globally for onclick handlers
+window._burst = function() { spawnBurst(5); };
+window._clearAll = function() {
+  for (const b of balls) Matter.Composite.remove(world, b);
+  balls = [];
+};
+window._flipCamera = function() { flipCamera(); };
+
 function removeOffscreenBalls() {
   const limitY = canvas.height + 100;
   const limitX = canvas.width + 100;
@@ -619,27 +627,7 @@ function setupControls() {
     });
   }
 
-  // Buttons — use pointerup so they work on both desktop and mobile
-  document.getElementById('flip-btn').addEventListener('pointerup', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    flipCamera();
-  });
-
-  document.getElementById('burst-btn').addEventListener('pointerup', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    spawnBurst(5);
-  });
-
-  document.getElementById('clear-btn').addEventListener('pointerup', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    for (const b of balls) {
-      Matter.Composite.remove(world, b);
-    }
-    balls = [];
-  });
+  // Buttons use inline onclick in HTML → window._burst(), window._clearAll(), window._flipCamera()
 }
 
 // ─── Safety: wait for OpenCV if already loaded ──────────────────────────────
