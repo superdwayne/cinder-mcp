@@ -1,11 +1,12 @@
 // BlockBounce — Web version of Cinder physics demo
-// Camera feed + edge detection + physics ball bouncing off real objects
+// Camera feed + edge detection + physics balls bouncing off real objects
 
 // ─── Global State ───────────────────────────────────────────────────────────
 
 let video, canvas, ctx, offscreen, offCtx;
 let cvReady = false;
-let engine, world, ball;
+let engine, world;
+let balls = [];
 let blockBodies = [];
 let wallBodies = [];
 
@@ -15,6 +16,7 @@ let cannyHigh = 180;
 let minArea = 3000;
 let ballRadius = 15;
 let ballBounce = 0.92;
+let maxBalls = 15;
 
 // Camera
 let facingMode = 'environment';
@@ -25,11 +27,9 @@ let frameCount = 0;
 const PROCESS_EVERY = 3;
 let lastContours = [];
 
-// Ball stuck detection
-let ballStuckFrames = 0;
-let lastBallPos = { x: 0, y: 0 };
-const STUCK_THRESHOLD = 180; // ~3 seconds at 60fps
-const STUCK_MOVE_MIN = 2;   // pixels
+// Auto-spawn timer
+let spawnAccum = 0;
+const SPAWN_INTERVAL = 15; // frames between auto-spawns
 
 // Video dimensions (internal processing resolution)
 const CAM_WIDTH = 640;
@@ -74,6 +74,9 @@ async function init() {
 
   // Setup controls
   setupControls();
+
+  // Setup touch/click to spawn
+  setupSpawnInteraction();
 
   // Start camera
   await startCamera();
@@ -198,17 +201,19 @@ function updateWalls() {
 
 // ─── Ball ───────────────────────────────────────────────────────────────────
 
-function spawnBall() {
-  // Remove old ball
-  if (ball) {
-    Matter.Composite.remove(world, ball);
-    ball = null;
+function spawnBall(x, y) {
+  // Default position: random from top
+  if (x === undefined) {
+    x = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.4;
+  }
+  if (y === undefined) {
+    y = 30 + Math.random() * 20;
   }
 
-  const x = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.4;
-  const y = 30 + Math.random() * 20;
+  // Random radius variation
+  const r = ballRadius * (0.7 + Math.random() * 0.6);
 
-  ball = Matter.Bodies.circle(x, y, ballRadius, {
+  const ball = Matter.Bodies.circle(x, y, r, {
     density: 0.001,
     restitution: ballBounce,
     friction: 0.1,
@@ -217,50 +222,57 @@ function spawnBall() {
     label: 'ball'
   });
 
-  Matter.Composite.add(world, ball);
+  // Slight random initial velocity
+  Matter.Body.setVelocity(ball, {
+    x: (Math.random() - 0.5) * 4,
+    y: 2 + Math.random() * 3
+  });
 
-  // Reset stuck detection
-  ballStuckFrames = 0;
-  lastBallPos = { x: ball.position.x, y: ball.position.y };
+  // Store hue for color cycling
+  ball._hue = Math.random();
+  ball._radius = r;
+
+  Matter.Composite.add(world, ball);
+  balls.push(ball);
 }
 
-function checkBallRespawn() {
-  if (!ball) {
-    spawnBall();
-    return;
+function spawnBurst(count) {
+  count = count || 5;
+  for (let i = 0; i < count; i++) {
+    const rx = 100 + Math.random() * (canvas.width - 200);
+    spawnBall(rx, -40);
   }
+}
 
-  const pos = ball.position;
+function removeOffscreenBalls() {
+  const limitY = canvas.height + 100;
+  const limitX = canvas.width + 100;
 
-  // Off screen bottom
-  if (pos.y > canvas.height + 100) {
-    spawnBall();
-    return;
+  for (let i = balls.length - 1; i >= 0; i--) {
+    const pos = balls[i].position;
+    if (pos.y > limitY || pos.x < -100 || pos.x > limitX || pos.y < -200) {
+      Matter.Composite.remove(world, balls[i]);
+      balls.splice(i, 1);
+    }
   }
+}
 
-  // Off screen sides (shouldn't happen with walls, but safety)
-  if (pos.x < -200 || pos.x > canvas.width + 200) {
-    spawnBall();
-    return;
-  }
+// ─── Touch / Click to Spawn ─────────────────────────────────────────────────
 
-  // Stuck detection
-  const dx = pos.x - lastBallPos.x;
-  const dy = pos.y - lastBallPos.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
+function setupSpawnInteraction() {
+  // Click to spawn ball at position
+  canvas.addEventListener('click', (e) => {
+    spawnBall(e.clientX, e.clientY);
+  });
 
-  if (dist < STUCK_MOVE_MIN) {
-    ballStuckFrames++;
-  } else {
-    ballStuckFrames = 0;
-  }
-
-  if (ballStuckFrames > STUCK_THRESHOLD) {
-    spawnBall();
-    return;
-  }
-
-  lastBallPos = { x: pos.x, y: pos.y };
+  // Touch to spawn (mobile)
+  canvas.addEventListener('touchstart', (e) => {
+    // Spawn a ball for each touch point
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      spawnBall(touch.clientX, touch.clientY);
+    }
+  }, { passive: true });
 }
 
 // ─── OpenCV Processing ──────────────────────────────────────────────────────
@@ -415,8 +427,40 @@ function updatePhysics(contours) {
     }
   }
 
-  // Check ball respawn
-  checkBallRespawn();
+  // Remove off-screen balls
+  removeOffscreenBalls();
+
+  // Auto-spawn balls up to maxBalls
+  spawnAccum++;
+  if (balls.length < maxBalls && spawnAccum >= SPAWN_INTERVAL) {
+    const rx = 100 + Math.random() * (canvas.width - 200);
+    spawnBall(rx, -40);
+    spawnAccum = 0;
+  }
+}
+
+// ─── HSV to RGB helper ──────────────────────────────────────────────────────
+
+function hsvToRgb(h, s, v) {
+  let r, g, b;
+  const i = Math.floor(h * 6);
+  const f = h * 6 - i;
+  const p = v * (1 - s);
+  const q = v * (1 - f * s);
+  const t = v * (1 - (1 - f) * s);
+  switch (i % 6) {
+    case 0: r = v; g = t; b = p; break;
+    case 1: r = q; g = v; b = p; break;
+    case 2: r = p; g = v; b = t; break;
+    case 3: r = p; g = q; b = v; break;
+    case 4: r = t; g = p; b = v; break;
+    case 5: r = v; g = p; b = q; break;
+  }
+  return {
+    r: Math.round(r * 255),
+    g: Math.round(g * 255),
+    b: Math.round(b * 255)
+  };
 }
 
 // ─── Rendering ──────────────────────────────────────────────────────────────
@@ -441,7 +485,7 @@ function render() {
     ctx.drawImage(video, 0, 0, w, h);
     ctx.restore();
 
-    // Slight dim overlay so ball is more visible
+    // Slight dim overlay so balls are more visible
     ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
     ctx.fillRect(0, 0, w, h);
   } else {
@@ -449,21 +493,31 @@ function render() {
     ctx.fillRect(0, 0, w, h);
   }
 
-  // Draw ball
-  if (ball) {
+  // Draw all balls with glow effect
+  for (const ball of balls) {
     const pos = ball.position;
-    const r = ballRadius;
+    const r = ball._radius || ballRadius;
 
-    // Ball shadow
+    // Cycle hue slowly
+    ball._hue = (ball._hue + 0.001) % 1;
+    const color = hsvToRgb(ball._hue, 0.9, 1.0);
+
+    // Outer glow
+    const glowGrad = ctx.createRadialGradient(pos.x, pos.y, r * 0.5, pos.x, pos.y, r * 2.5);
+    glowGrad.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`);
+    glowGrad.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
     ctx.beginPath();
-    ctx.arc(pos.x + 2, pos.y + 2, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.arc(pos.x, pos.y, r * 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = glowGrad;
     ctx.fill();
 
-    // Ball body — white
+    // Ball body — bright color
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
+    const brightR = Math.min(255, color.r * 0.5 + 128);
+    const brightG = Math.min(255, color.g * 0.5 + 128);
+    const brightB = Math.min(255, color.b * 0.5 + 128);
+    ctx.fillStyle = `rgb(${brightR}, ${brightG}, ${brightB})`;
     ctx.fill();
 
     // Highlight — top-left shine
@@ -477,21 +531,17 @@ function render() {
     ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
     ctx.fillStyle = grad;
     ctx.fill();
-
-    // Subtle bottom shade for 3D effect
-    const shade = ctx.createRadialGradient(
-      pos.x, pos.y + r * 0.2, r * 0.3,
-      pos.x, pos.y, r
-    );
-    shade.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    shade.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = shade;
-    ctx.fill();
   }
 
-  // NO contour drawing — invisible collision
+  // Ball count display
+  if (balls.length > 1) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${balls.length} balls`, w - 12, 20);
+    ctx.restore();
+  }
 }
 
 // ─── Game Loop ──────────────────────────────────────────────────────────────
@@ -509,8 +559,8 @@ function gameLoop() {
   if (frameCount % PROCESS_EVERY === 0) {
     updatePhysics(contours);
   } else {
-    // Still check ball respawn every frame
-    checkBallRespawn();
+    // Still remove off-screen balls every frame
+    removeOffscreenBalls();
   }
 
   // Step physics
@@ -528,8 +578,17 @@ function setupControls() {
   // Toggle panel
   const toggleBtn = document.getElementById('toggle-controls');
   const body = document.getElementById('controls-body');
-  toggleBtn.addEventListener('click', () => {
+  toggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent spawning a ball
     body.classList.toggle('collapsed');
+  });
+
+  // Prevent clicks on controls panel from spawning balls
+  document.getElementById('controls').addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+  document.getElementById('controls').addEventListener('touchstart', (e) => {
+    e.stopPropagation();
   });
 
   // Canny slider
@@ -554,8 +613,6 @@ function setupControls() {
   ballSizeSlider.addEventListener('input', () => {
     ballRadius = parseInt(ballSizeSlider.value);
     ballSizeVal.textContent = ballRadius;
-    // Respawn ball with new size
-    spawnBall();
   });
 
   // Bounce slider
@@ -564,16 +621,35 @@ function setupControls() {
   bounceSlider.addEventListener('input', () => {
     ballBounce = parseInt(bounceSlider.value) / 100;
     bounceVal.textContent = ballBounce.toFixed(2);
-    if (ball) {
+    // Update existing balls
+    for (const ball of balls) {
       ball.restitution = ballBounce;
     }
   });
 
+  // Ball count slider
+  const ballCountSlider = document.getElementById('ball-count-slider');
+  const ballCountVal = document.getElementById('ball-count-val');
+  if (ballCountSlider) {
+    ballCountSlider.addEventListener('input', () => {
+      maxBalls = parseInt(ballCountSlider.value);
+      ballCountVal.textContent = maxBalls;
+    });
+  }
+
   // Flip camera button
   document.getElementById('flip-btn').addEventListener('click', flipCamera);
 
-  // Respawn button
-  document.getElementById('respawn-btn').addEventListener('click', spawnBall);
+  // Burst button (spawn 5 at once)
+  document.getElementById('burst-btn').addEventListener('click', () => spawnBurst(5));
+
+  // Clear button
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    for (const ball of balls) {
+      Matter.Composite.remove(world, ball);
+    }
+    balls = [];
+  });
 }
 
 // ─── Safety: wait for OpenCV if already loaded ──────────────────────────────
