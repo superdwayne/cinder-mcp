@@ -338,6 +338,10 @@ void BlockBounceApp::mouseDown( MouseEvent event )
             CI_LOG_I( "Calibration complete — perspective matrix computed." );
         }
     }
+    else {
+        // Click to spawn a ball at mouse position
+        spawnBall( pos );
+    }
 }
 
 // ===========================================================================
@@ -359,8 +363,15 @@ void BlockBounceApp::keyDown( KeyEvent event )
             mShowUI = !mShowUI;
             break;
         case KeyEvent::KEY_b:
+            // Spawn a burst of 5 balls from random positions at the top
+            for ( int i = 0; i < 5; ++i ) {
+                float rx = Rand::randFloat( 100.0f, getWindowWidth() - 100.0f );
+                spawnBall( vec2( rx, -40.0f ) );
+            }
             break;
         case KeyEvent::KEY_SPACE:
+            // Spawn a single ball from random top position
+            spawnBall( vec2( Rand::randFloat( 100.0f, getWindowWidth() - 100.0f ), -40.0f ) );
             break;
         case KeyEvent::KEY_ESCAPE:
             quit();
