@@ -260,19 +260,10 @@ function removeOffscreenBalls() {
 // ─── Touch / Click to Spawn ─────────────────────────────────────────────────
 
 function setupSpawnInteraction() {
-  // Click to spawn ball at position
-  canvas.addEventListener('click', (e) => {
+  // Only spawn when tapping/clicking the canvas itself (not controls)
+  canvas.addEventListener('pointerdown', (e) => {
     spawnBall(e.clientX, e.clientY);
   });
-
-  // Touch to spawn (mobile)
-  canvas.addEventListener('touchstart', (e) => {
-    // Spawn a ball for each touch point
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      spawnBall(touch.clientX, touch.clientY);
-    }
-  }, { passive: true });
 }
 
 // ─── OpenCV Processing ──────────────────────────────────────────────────────
@@ -577,25 +568,10 @@ function gameLoop() {
 function setupControls() {
   // Toggle panel
   const toggleBtn = document.getElementById('toggle-controls');
-  const body = document.getElementById('controls-body');
-  toggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // Prevent spawning a ball
-    body.classList.toggle('collapsed');
-  });
-
-  // Prevent clicks on controls panel from spawning balls
-  // Use capture phase so buttons still receive their own events
-  const controlsEl = document.getElementById('controls');
-  controlsEl.addEventListener('click', (e) => {
-    // Only stop propagation if the target is not a button
-    if (e.target.tagName !== 'BUTTON') {
-      e.stopPropagation();
-    }
-  });
-  controlsEl.addEventListener('touchstart', (e) => {
-    if (e.target.tagName !== 'BUTTON') {
-      e.stopPropagation();
-    }
+  const controlsBody = document.getElementById('controls-body');
+  toggleBtn.addEventListener('pointerup', (e) => {
+    e.preventDefault();
+    controlsBody.classList.toggle('collapsed');
   });
 
   // Canny slider
@@ -628,9 +604,8 @@ function setupControls() {
   bounceSlider.addEventListener('input', () => {
     ballBounce = parseInt(bounceSlider.value) / 100;
     bounceVal.textContent = ballBounce.toFixed(2);
-    // Update existing balls
-    for (const ball of balls) {
-      ball.restitution = ballBounce;
+    for (const b of balls) {
+      b.restitution = ballBounce;
     }
   });
 
@@ -644,26 +619,27 @@ function setupControls() {
     });
   }
 
-  // Flip camera button
-  const flipBtn = document.getElementById('flip-btn');
-  flipBtn.addEventListener('click', flipCamera);
-  flipBtn.addEventListener('touchend', (e) => { e.preventDefault(); flipCamera(); });
+  // Buttons — use pointerup so they work on both desktop and mobile
+  document.getElementById('flip-btn').addEventListener('pointerup', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    flipCamera();
+  });
 
-  // Burst button (spawn 5 at once)
-  const burstBtn = document.getElementById('burst-btn');
-  burstBtn.addEventListener('click', (e) => { e.stopPropagation(); spawnBurst(5); });
-  burstBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); spawnBurst(5); });
+  document.getElementById('burst-btn').addEventListener('pointerup', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    spawnBurst(5);
+  });
 
-  // Clear button
-  const clearBtn = document.getElementById('clear-btn');
-  const clearAll = () => {
-    for (const ball of balls) {
-      Matter.Composite.remove(world, ball);
+  document.getElementById('clear-btn').addEventListener('pointerup', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    for (const b of balls) {
+      Matter.Composite.remove(world, b);
     }
     balls = [];
-  };
-  clearBtn.addEventListener('click', (e) => { e.stopPropagation(); clearAll(); });
-  clearBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); clearAll(); });
+  });
 }
 
 // ─── Safety: wait for OpenCV if already loaded ──────────────────────────────
